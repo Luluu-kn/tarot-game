@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>温柔塔罗 · 休闲小游戏</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 配置低饱和奶白淡紫主题色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#FDFBF7',
+                        lavender: '#E6E1F5',
+                        'lavender-deep': '#C4B5E0',
+                        'tarot-purple': '#2E1A47',
+                        'tarot-gold': '#D4AF37',
+                        'text-main': '#4A4453',
+                        'text-soft': '#7A7485',
+                    },
+                    fontFamily: {
+                        sans: ['"PingFang SC"', '"Microsoft YaHei"', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 整体背景：柔和的奶油紫渐变 */
+        body {
+            background: linear-gradient(135deg, #FDFBF7 0%, #F3F0FA 50%, #ECE6F8 100%);
+            min-height: 100vh;
+            color: #4A4453;
+        }
+
+        /* 卡牌容器透视，实现 3D 翻转 */
+        .card-scene {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-scene.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(46, 26, 71, 0.12);
+        }
+
+        /* 牌背：深紫底色 + 暗金星月符文藤蔓纹样 */
+        .card-back {
+            background-color: #2E1A47;
+            background-image:
+                radial-gradient(circle at 50% 15%, rgba(212, 175, 55, 0.22) 0%, transparent 35%),
+                radial-gradient(circle at 50% 85%, rgba(212, 175, 55, 0.18) 0%, transparent 30%),
+                repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 18px, rgba(212,175,55,0.08) 19px, transparent 20px),
+                repeating-conic-gradient(from 0deg at 50% 50%, rgba(212,175,55,0.06) 0deg 6deg, transparent 6deg 12deg);
+            border: 2px solid rgba(212, 175, 55, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 牌背中央月亮符号 */
+        .card-back::after {
+            content: "🌙";
+            font-size: 2.5rem;
+            opacity: 0.55;
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+        }
+
+        /* 牌正面 */
+        .card-front {
+            background: #FDFBF7;
+            border: 1px solid #E6E1F5;
+            transform: rotateY(180deg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 插画占位区域：占满整个牌面 */
+        .card-image-placeholder {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, #F3F0FA 0%, #ECE6F8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #A89DB8;
+            font-size: 0.875rem;
+        }
+
+        /* 牌面文字信息：悬浮在卡牌上方，半透明毛玻璃框 */
+        .card-info-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            background: rgba(253, 251, 247, 0.82);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border-bottom: 1px solid rgba(230, 225, 245, 0.7);
+            border-radius: 1rem 1rem 0 0;
+            z-index: 2;
+        }
+
+        /* 按钮通用 hover 动效 */
+        .btn-primary {
+            transition: all 0.25s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 110, 191, 0.25);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-soft {
+            transition: all 0.25s ease;
+        }
+        .btn-soft:hover {
+            background-color: #E6E1F5;
+        }
+
+        /* 输入框 focus 光环 */
+        .input-field:focus {
+            outline: none;
+            border-color: #C4B5E0;
+            box-shadow: 0 0 0 3px rgba(196, 181, 224, 0.25);
+        }
+
+        /* 步骤切换淡入动画 */
+        .fade-in {
+            animation: fadeIn 0.5s ease both;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 解读文字淡入 */
+        .interpretation-fade {
+            animation: fadeIn 0.6s ease both;
+        }
+
+        /* 移动端适配：卡牌尺寸 */
+        @media (max-width: 640px) {
+            .tarot-card {
+                width: 100px;
+                height: 160px;
+            }
+        }
+        @media (min-width: 641px) {
+            .tarot-card {
+                width: 140px;
+                height: 220px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 顶部常驻免责声明 -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-lavender">
+        <div class="max-w-3xl mx-auto px-4 py-2.5 text-center">
+            <p class="text-xs sm:text-sm text-text-soft leading-relaxed">
+                ⚠️ 本页面仅休闲娱乐，不代表运势，不能作为任何学业、感情、生活、投资的决策参考。
+            </p>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="pt-16 pb-12 px-4 min-h-screen flex flex-col items-center justify-center">
+        <div class="w-full max-w-2xl">
+
+            <!-- 步骤 1：首页 - 输入问题 -->
+            <section id="step-home" class="fade-in text-center space-y-8">
+                <div class="space-y-3">
+                    <h1 class="text-3xl sm:text-4xl font-light text-tarot-purple tracking-wide">温柔塔罗</h1>
+                    <p class="text-text-soft text-base sm:text-lg">一场轻松的小游戏，只为陪你自我觉察 ✨</p>
+                </div>
+
+                <div class="bg-white/70 rounded-2xl p-6 sm:p-8 shadow-sm border border-lavender space-y-5">
+                    <label for="question" class="block text-left text-text-main font-medium">
+                        此刻，你心里在想什么？
+                    </label>
+                    <textarea
+                        id="question"
+                        rows="3"
+                        maxlength="80"
+                        placeholder="例如：最近有点累，想给自己一点鼓励……"
+                        class="input-field w-full px-4 py-3 rounded-xl border border-lavender-deep bg-cream/60 text-text-main resize-none transition-all"
+                    ></textarea>
+                    <div class="flex justify-between items-center text-xs text-text-soft">
+                        <span id="char-count">0 / 80</span>
+                        <span id="question-error" class="text-red-400 hidden">请先填写一个问题哦</span>
+                    </div>
+                    <button
+                        onclick="goToSupport()"
+                        class="btn-primary w-full py-3.5 rounded-xl bg-gradient-to-r from-[#B8A9D9] to-[#9B8AC7] text-white font-medium text-lg shadow-md"
+                    >
+                        开始抽牌
+                    </button>
+                </div>
+            </section>
+
+            <!-- 步骤 2：支持提示页 -->
+            <section id="step-support" class="hidden fade-in text-center space-y-8">
+                <div class="bg-white/70 rounded-2xl p-8 sm:p-10 shadow-sm border border-lavender space-y-6">
+                    <div class="text-4xl">✨</div>
+                    <p class="text-lg sm:text-xl text-text-main leading-relaxed">
+                        为本次抽牌积攒能量，<br>
+                        如果喜欢小游戏可以点赞关注支持作者。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                        <button
+                            onclick="goToSelect()"
+                            class="btn-soft px-6 py-3 rounded-xl border border-lavender-deep text-text-soft"
+                        >
+                            已支持，继续
+                        </button>
+                        <button
+                            onclick="goToSelect()"
+                            class="btn-primary px-6 py-3 rounded-xl bg-gradient-to-r from-[#B8A9D9] to-[#9B8AC7] text-white font-medium"
+                        >
+                            跳过，直接抽牌
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步骤 3：选牌页 -->
+            <section id="step-select" class="hidden fade-in space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-light text-tarot-purple">选择你的三张牌</h2>
+                    <p class="text-text-soft text-sm">输入 3 个 1~78 之间不重复的数字，或点击随机</p>
+                </div>
+
+                <div class="bg-white/70 rounded-2xl p-6 sm:p-8 shadow-sm border border-lavender space-y-6">
+                    <!-- 三牌阵输入 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-sm text-text-soft">过去</label>
+                            <input
+                                type="number"
+                                id="card-num-1"
+                                min="1"
+                                max="78"
+                                placeholder="1-78"
+                                class="input-field w-full px-4 py-3 rounded-xl border border-lavender-deep bg-cream/60 text-center text-text-main"
+                            >
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm text-text-soft">现在</label>
+                            <input
+                                type="number"
+                                id="card-num-2"
+                                min="1"
+                                max="78"
+                                placeholder="1-78"
+                                class="input-field w-full px-4 py-3 rounded-xl border border-lavender-deep bg-cream/60 text-center text-text-main"
+                            >
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm text-text-soft">未来</label>
+                            <input
+                                type="number"
+                                id="card-num-3"
+                                min="1"
+                                max="78"
+                                placeholder="1-78"
+                                class="input-field w-full px-4 py-3 rounded-xl border border-lavender-deep bg-cream/60 text-center text-text-main"
+                            >
+                        </div>
+                    </div>
+
+                    <p id="select-error" class="text-red-400 text-sm text-center hidden"></p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button
+                            onclick="randomSelect()"
+                            class="btn-soft px-6 py-3 rounded-xl border border-lavender-deep text-text-soft"
+                        >
+                            🎲 一键随机选数字
+                        </button>
+                        <button
+                            onclick="confirmSelect()"
+                            class="btn-primary px-8 py-3 rounded-xl bg-gradient-to-r from-[#B8A9D9] to-[#9B8AC7] text-white font-medium"
+                        >
+                            确认选牌
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步骤 4：翻牌页 -->
+            <section id="step-reveal" class="hidden fade-in space-y-6">
+                <div class="text-center space-y-1">
+                    <h2 class="text-2xl font-light text-tarot-purple">轻轻点击，翻开卡牌</h2>
+                    <p class="text-text-soft text-sm">依次翻开过去、现在、未来</p>
+                </div>
+
+                <!-- 三张卡牌与对应解析 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" id="cards-container">
+                    <!-- 卡牌与解析由 JS 动态生成 -->
+                </div>
+
+                <!-- 总结区（三张全翻开后显示） -->
+                <div id="summary-area" class="hidden bg-white/70 rounded-2xl p-6 sm:p-8 shadow-sm border border-lavender space-y-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-lg font-medium text-tarot-purple">🌟 总结</h3>
+                        <span id="fallback-badge" class="hidden text-xs px-2 py-0.5 rounded-full bg-lavender text-text-soft">本地体验模式</span>
+                    </div>
+                    <div id="summary-text" class="text-text-main leading-relaxed whitespace-pre-line"></div>
+                </div>
+
+                <!-- 温馨提醒（三张全翻开后显示） -->
+                <div id="reminder-area" class="hidden text-center bg-gradient-to-r from-[#F3F0FA] to-[#ECE6F8] rounded-2xl p-5 sm:p-6 border border-lavender">
+                    <p class="text-sm text-text-soft leading-relaxed">
+                        【温馨提醒：这只是一场轻松的小游戏，仅供自我觉察和娱乐，不必作为现实选择的依据，你的人生始终由自己掌控。】
+                    </p>
+                </div>
+
+                <!-- 结束按钮 -->
+                <div id="end-actions" class="hidden flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                    <button
+                        onclick="playAgain()"
+                        class="btn-primary px-8 py-3 rounded-xl bg-gradient-to-r from-[#B8A9D9] to-[#9B8AC7] text-white font-medium"
+                    >
+                        再抽一次
+                    </button>
+                    <button
+                        onclick="goHome()"
+                        class="btn-soft px-8 py-3 rounded-xl border border-lavender-deep text-text-soft"
+                    >
+                        返回首页
+                    </button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // ================= 状态管理 =================
+        let currentQuestion = "";
+        let selectedCards = [];     // { id, name, position, direction }
+        let revealedCount = 0;
+        let interpretationReceived = false;
+        let segmentsData = null;    // 后端返回的 { past, present, future, summary }
+
+        // 韦特塔罗 78 张名称映射（与后端保持一致，仅用于展示）
+        const TAROT_CARDS = [
+            "愚人", "魔术师", "女祭司", "皇后", "皇帝", "教皇", "恋人", "战车", "力量", "隐者",
+            "命运之轮", "正义", "倒吊人", "死神", "节制", "恶魔", "塔", "星星", "月亮", "太阳",
+            "审判", "世界",
+            "权杖首牌", "权杖二", "权杖三", "权杖四", "权杖五", "权杖六", "权杖七", "权杖八",
+            "权杖九", "权杖十", "权杖侍从", "权杖骑士", "权杖王后", "权杖国王",
+            "圣杯首牌", "圣杯二", "圣杯三", "圣杯四", "圣杯五", "圣杯六", "圣杯七", "圣杯八",
+            "圣杯九", "圣杯十", "圣杯侍从", "圣杯骑士", "圣杯王后", "圣杯国王",
+            "宝剑首牌", "宝剑二", "宝剑三", "宝剑四", "宝剑五", "宝剑六", "宝剑七", "宝剑八",
+            "宝剑九", "宝剑十", "宝剑侍从", "宝剑骑士", "宝剑王后", "宝剑国王",
+            "星币首牌", "星币二", "星币三", "星币四", "星币五", "星币六", "星币七", "星币八",
+            "星币九", "星币十", "星币侍从", "星币骑士", "星币王后", "星币国王",
+        ];
+
+        const positions = ["过去", "现在", "未来"];
+
+        // ================= DOM 元素 =================
+        const questionInput = document.getElementById("question");
+        const charCount = document.getElementById("char-count");
+        const questionError = document.getElementById("question-error");
+        const selectError = document.getElementById("select-error");
+        const cardsContainer = document.getElementById("cards-container");
+        const summaryArea = document.getElementById("summary-area");
+        const summaryText = document.getElementById("summary-text");
+        const reminderArea = document.getElementById("reminder-area");
+        const endActions = document.getElementById("end-actions");
+
+        // ================= 工具函数 =================
+        function showStep(stepId) {
+            ["step-home", "step-support", "step-select", "step-reveal"].forEach(id => {
+                document.getElementById(id).classList.add("hidden");
+            });
+            document.getElementById(stepId).classList.remove("hidden");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function getRandomNumbers() {
+            const nums = new Set();
+            while (nums.size < 3) {
+                nums.add(Math.floor(Math.random() * 78) + 1);
+            }
+            return Array.from(nums);
+        }
+
+        function getRandomDirection() {
+            return Math.random() > 0.5 ? "upright" : "reversed";
+        }
+
+        // ================= 步骤 1：首页 =================
+        questionInput.addEventListener("input", () => {
+            const len = questionInput.value.length;
+            charCount.textContent = `${len} / 80`;
+            if (len > 0) questionError.classList.add("hidden");
+        });
+
+        function goToSupport() {
+            const val = questionInput.value.trim();
+            if (!val) {
+                questionError.classList.remove("hidden");
+                return;
+            }
+            currentQuestion = val;
+            showStep("step-support");
+        }
+
+        // ================= 步骤 2：支持提示页 =================
+        function goToSelect() {
+            showStep("step-select");
+        }
+
+        // ================= 步骤 3：选牌页 =================
+        function randomSelect() {
+            const nums = getRandomNumbers();
+            document.getElementById("card-num-1").value = nums[0];
+            document.getElementById("card-num-2").value = nums[1];
+            document.getElementById("card-num-3").value = nums[2];
+            selectError.classList.add("hidden");
+        }
+
+        function confirmSelect() {
+            const n1 = parseInt(document.getElementById("card-num-1").value, 10);
+            const n2 = parseInt(document.getElementById("card-num-2").value, 10);
+            const n3 = parseInt(document.getElementById("card-num-3").value, 10);
+            const nums = [n1, n2, n3];
+
+            // 校验
+            if (nums.some(n => isNaN(n) || n < 1 || n > 78)) {
+                selectError.textContent = "请填写 3 个 1~78 之间的数字";
+                selectError.classList.remove("hidden");
+                return;
+            }
+            if (new Set(nums).size !== 3) {
+                selectError.textContent = "三个数字不能重复哦";
+                selectError.classList.remove("hidden");
+                return;
+            }
+
+            // 构建卡牌数据
+            selectedCards = nums.map((num, idx) => ({
+                id: num,
+                name: TAROT_CARDS[num - 1],
+                position: positions[idx],
+                direction: getRandomDirection(),
+            }));
+
+            renderCards();
+            selectError.classList.add("hidden");
+            showStep("step-reveal");
+        }
+
+        // ================= 步骤 4：翻牌页 =================
+        function renderCards() {
+            cardsContainer.innerHTML = "";
+            selectedCards.forEach((card, idx) => {
+                const directionLabel = card.direction === "upright" ? "正位" : "逆位";
+                const wrapper = document.createElement("div");
+                wrapper.className = "flex flex-col items-center gap-4";
+                wrapper.innerHTML = `
+                    <div class="card-scene tarot-card cursor-pointer" data-index="${idx}">
+                        <div class="card-inner">
+                            <div class="card-face card-back"></div>
+                            <div class="card-face card-front">
+                                <div class="card-info-overlay">
+                                    <p class="text-xs text-text-soft mb-0.5">${card.position}</p>
+                                    <h4 class="text-sm sm:text-base font-medium text-tarot-purple">${card.name}</h4>
+                                    <p class="text-xs text-tarot-gold mt-0.5">${directionLabel}</p>
+                                </div>
+                                <div class="card-image-placeholder">
+                                    <span>插画占位</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="card-interpretation-${idx}" class="hidden w-full max-w-[180px] bg-white/60 rounded-xl p-4 border border-lavender interpretation-fade">
+                        <p class="text-xs text-text-soft mb-1">${card.position} · ${card.name}</p>
+                        <p class="card-interpretation-text text-sm text-text-main leading-relaxed">正在为你编织温柔文字……</p>
+                    </div>
+                `;
+                const scene = wrapper.querySelector(".card-scene");
+                scene.addEventListener("click", () => revealCard(idx));
+                cardsContainer.appendChild(wrapper);
+            });
+        }
+
+        async function revealCard(idx) {
+            const scenes = document.querySelectorAll(".card-scene");
+            const scene = scenes[idx];
+
+            // 只能按顺序翻牌
+            if (idx !== revealedCount) return;
+            if (scene.classList.contains("flipped")) return;
+
+            scene.classList.add("flipped");
+            revealedCount++;
+
+            // 立即显示当前翻开牌对应的解析区（loading 状态）
+            showCardInterpretation(idx);
+
+            // 第一张翻开时请求后端解读
+            if (idx === 0 && !interpretationReceived) {
+                await fetchInterpretation();
+            }
+
+            // 全部翻开后展示总结、温馨提醒与结束按钮
+            if (revealedCount === 3) {
+                setTimeout(() => {
+                    showSummary();
+                }, 500);
+            }
+        }
+
+        function showCardInterpretation(idx) {
+            const keyMap = ["past", "present", "future"];
+            const key = keyMap[idx];
+            const box = document.getElementById(`card-interpretation-${idx}`);
+            if (!box) return;
+
+            box.classList.remove("hidden");
+
+            // 如果数据已返回，填充对应段落；否则保留温柔 loading 文案
+            if (segmentsData && segmentsData[key]) {
+                const textEl = box.querySelector(".card-interpretation-text");
+                textEl.textContent = segmentsData[key];
+            }
+        }
+
+        // 前端本地兜底：大阿卡纳牌意映射
+        const MAJOR_MEANINGS = {
+            "愚人": "带着好奇与信任踏上新旅程，允许自己轻松尝试。",
+            "魔术师": "你手中已经拥有需要的资源，现在是发挥创造力的时候。",
+            "女祭司": "静下心来，倾听内在智慧与直觉的轻声低语。",
+            "皇后": "用温柔与滋养对待自己，你值得被好好照顾。",
+            "皇帝": "建立稳定的结构，温柔而坚定地掌控自己的生活节奏。",
+            "教皇": "向传统与学习寻求启发，找到让自己安心的指引。",
+            "恋人": "看见内心的价值选择，在关系与自我之间寻找和谐。",
+            "战车": "运用意志力朝着目标前进，你有力量穿越眼前的挑战。",
+            "力量": "以温柔而坚定的方式面对自己，真正的勇气来自内心。",
+            "隐者": "给自己一段独处的时光，在安静中你会找到答案。",
+            "命运之轮": "变化是生命自然的节奏，顺势而为也是一种智慧。",
+            "正义": "诚实面对自己，在平衡中承担属于自己的责任。",
+            "倒吊人": "偶尔的暂停不是停滞，而是换一个角度看世界。",
+            "死神": "放下旧有的篇章，转化才会带来新的空间。",
+            "节制": "在看似对立的事物间找到平衡，耐心会带来调和。",
+            "恶魔": "看见那些束缚你的模式，觉察本身就是自由的开始。",
+            "塔": "突变带来释放，旧的结构瓦解后才有重建的可能。",
+            "星星": "怀抱希望与宁静的信心，疗愈正在悄然发生。",
+            "月亮": "在不确定中信任直觉，潜意识正悄悄为你点亮路标。",
+            "太阳": "带着喜悦与活力活在当下，明朗的能量正围绕着你。",
+            "审判": "从过去的经验中觉醒，给自己一个重新出发的机会。",
+            "世界": "一个阶段趋于完整，整合后的你正站在新的起点。",
+        };
+
+        function getCardMeaning(name) {
+            if (MAJOR_MEANINGS[name]) return MAJOR_MEANINGS[name];
+
+            let suitTheme = "生活";
+            if (name.startsWith("权杖")) suitTheme = "行动与热情";
+            else if (name.startsWith("圣杯")) suitTheme = "情感与关系";
+            else if (name.startsWith("宝剑")) suitTheme = "思考与沟通";
+            else if (name.startsWith("星币")) suitTheme = "物质与实际";
+
+            if (name.includes("侍从")) return `带着新鲜感去学习和体验${suitTheme}相关的课题。`;
+            if (name.includes("骑士")) return `以积极的行动力去追求${suitTheme}方面的目标。`;
+            if (name.includes("王后")) return `用滋养与包容的态度对待${suitTheme}相关的人事物。`;
+            if (name.includes("国王")) return `在${suitTheme}方面展现成熟的掌控与稳定。`;
+            if (name.includes("首牌")) return `${suitTheme}的新契机正在出现，值得用心感受。`;
+
+            const cnNumbers = [
+                ["首牌", 1], ["一", 1], ["二", 2], ["三", 3], ["四", 4], ["五", 5],
+                ["六", 6], ["七", 7], ["八", 8], ["九", 9], ["十", 10],
+            ];
+            let num = 0;
+            for (const [cn, arabic] of cnNumbers) {
+                if (name.includes(cn)) {
+                    num = arabic;
+                    break;
+                }
+            }
+            return `在${suitTheme}的旅程中处于第${num}个阶段，提醒你看见当下的节奏。`;
+        }
+
+        // 前端本地兜底文案生成器：API 失败或超时时使用
+        function generateLocalSegments() {
+            const keys = ["past", "present", "future"];
+            const positionLabels = ["过去", "现在", "未来"];
+            const segments = {};
+            const meanings = [];
+
+            selectedCards.forEach((card, i) => {
+                const meaning = getCardMeaning(card.name);
+                meanings.push(meaning);
+                const directionLabel = card.direction === "upright" ? "正位" : "逆位";
+
+                let text = "";
+                if (i === 0) {
+                    text = `过去的牌面带来了${card.name}（${directionLabel}）的能量，它提醒你：${meaning} 这份经历悄悄塑造了你今天的模样。`;
+                } else if (i === 1) {
+                    text = `现在的牌面是${card.name}（${directionLabel}），它映照出你此刻的状态：${meaning} 允许自己被看见，就是一种温柔。`;
+                } else {
+                    text = `未来的牌面出现${card.name}（${directionLabel}），它带来一份柔软的邀请：${meaning} 未来的画布，正等你轻轻落笔。`;
+                }
+                segments[keys[i]] = text;
+            });
+
+            segments.summary = (
+                `关于「${currentQuestion}」，这三张牌共同讲述了一个温柔的故事：`
+                + `过去${meanings[0]}；`
+                + `现在${meanings[1]}；`
+                + `未来${meanings[2]}`
+                + `无论牌面怎样，你都在慢慢靠近更真实的自己。愿这份觉察成为你的一点点力量，继续向前走。`
+            );
+            return segments;
+        }
+
+        async function fetchInterpretation() {
+            const fallbackBadge = document.getElementById("fallback-badge");
+
+            // 设置 8 秒超时，避免 API 长时间无响应导致界面卡住
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("请求超时，已切换本地文案")), 8000)
+            );
+
+            try {
+                const fetchPromise = fetch("/api/get_tarot_read", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        question: currentQuestion,
+                        cards: selectedCards.map(c => ({
+                            name: c.name,
+                            position: c.position,
+                            direction: c.direction,
+                        })),
+                    }),
+                });
+
+                const res = await Promise.race([fetchPromise, timeoutPromise]);
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || "请求失败");
+                }
+
+                interpretationReceived = true;
+                segmentsData = data.segments || null;
+
+                // 若后端返回 fallback 标记，提示用户当前为本地体验模式
+                if (data.fallback) {
+                    fallbackBadge.classList.remove("hidden");
+                } else {
+                    fallbackBadge.classList.add("hidden");
+                }
+            } catch (err) {
+                // 失败或超时时，立即使用前端本地兜底文案
+                interpretationReceived = true;
+                segmentsData = generateLocalSegments();
+                fallbackBadge.classList.remove("hidden");
+                console.warn("AI 解读请求失败，已切换本地体验模式：", err.message);
+            }
+
+            // 刷新所有已翻开牌的解析区
+            for (let i = 0; i < revealedCount; i++) {
+                showCardInterpretation(i);
+            }
+
+            // 若三张已全部翻开，刷新总结区
+            if (revealedCount === 3) {
+                showSummary();
+            }
+        }
+
+        function showSummary() {
+            // 如果还没有 segmentsData（比如请求尚未完成），先用本地兜底生成一份
+            if (!segmentsData) {
+                segmentsData = generateLocalSegments();
+                document.getElementById("fallback-badge").classList.remove("hidden");
+            }
+            summaryText.textContent = segmentsData.summary;
+            summaryArea.classList.remove("hidden");
+            summaryArea.classList.add("interpretation-fade");
+            reminderArea.classList.remove("hidden");
+            reminderArea.classList.add("interpretation-fade");
+            endActions.classList.remove("hidden");
+            endActions.classList.add("interpretation-fade");
+        }
+
+        // ================= 结束页 =================
+        function clearCardState() {
+            // 仅清空与本次抽牌相关的状态，保留用户问题
+            selectedCards = [];
+            revealedCount = 0;
+            interpretationReceived = false;
+            segmentsData = null;
+            document.getElementById("card-num-1").value = "";
+            document.getElementById("card-num-2").value = "";
+            document.getElementById("card-num-3").value = "";
+            summaryArea.classList.add("hidden");
+            summaryText.textContent = "";
+            reminderArea.classList.add("hidden");
+            document.getElementById("fallback-badge").classList.add("hidden");
+            endActions.classList.add("hidden");
+        }
+
+        function playAgain() {
+            // 再抽一次：保留问题，清空牌面状态，回到选牌页
+            clearCardState();
+            showStep("step-select");
+        }
+
+        function resetGame() {
+            // 返回首页：清空所有状态
+            currentQuestion = "";
+            questionInput.value = "";
+            charCount.textContent = "0 / 80";
+            clearCardState();
+            showStep("step-home");
+        }
+
+        function goHome() {
+            resetGame();
+        }
+    </script>
+</body>
+</html>
