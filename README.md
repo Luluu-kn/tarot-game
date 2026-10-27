@@ -35,7 +35,11 @@ AI接口：智谱 GLM-4.7-Flash（免费额度版）
 5. AI生成温和的解读内容 + 美好祝愿
 6. 全部内容仅作休闲娱乐
 <img width="1079" height="589" alt="image" src="https://github.com/user-attachments/assets/fb5171b4-b756-4f05-8c18-6f673bd909b9" />
+<img width="1076" height="592" alt="image" src="https://github.com/user-attachments/assets/46d2697a-e89f-48d1-b7b5-3bc374e5ce2c" />
+
 <img width="1067" height="593" alt="image" src="https://github.com/user-attachments/assets/1c4e761b-ec34-48bc-97aa-10143bbdaec1" />
+<img width="570" height="147" alt="image" src="https://github.com/user-attachments/assets/6ddd8334-6846-46d5-9515-074f226b65a6" />
+
 
 ## 🚀 How to Run | 本地启动方式
 ```bash
