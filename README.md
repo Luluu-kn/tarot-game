@@ -7,6 +7,7 @@ This is a self-service tarot web game developed with Python Flask + Frontend HTM
 Users input their question, follow the rules to pick cards, flip the tarot cards one by one, and get AI interpretation.
 
 这是基于 Python Flask + 前端HTML/JS 开发的自助塔罗网页小游戏。用户输入自己想问的问题，按照规则选牌、逐张翻牌，获取AI生成的牌面解读。
+<img width="1077" height="590" alt="image" src="https://github.com/user-attachments/assets/c2fdce03-12ed-4c70-ba72-a17a4267e5c9" />
 
 ## 🛠 Tech Stack | 技术栈
 - Backend：Python, Flask
@@ -33,6 +34,8 @@ AI接口：智谱 GLM-4.7-Flash（免费额度版）
 4. 依次翻牌
 5. AI生成温和的解读内容 + 美好祝愿
 6. 全部内容仅作休闲娱乐
+<img width="1079" height="589" alt="image" src="https://github.com/user-attachments/assets/fb5171b4-b756-4f05-8c18-6f673bd909b9" />
+<img width="1067" height="593" alt="image" src="https://github.com/user-attachments/assets/1c4e761b-ec34-48bc-97aa-10143bbdaec1" />
 
 ## 🚀 How to Run | 本地启动方式
 ```bash
